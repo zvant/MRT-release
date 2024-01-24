@@ -5,6 +5,41 @@ from torchvision.datasets.coco import CocoDetection
 from typing import Optional, Callable
 
 
+def convert_coco():
+    import json
+    import tqdm
+
+    thing_classes_coco = [['person'], ['car', 'bus', 'truck']]
+    thing_classes = ['person', 'vehicle']
+    root_dir = '/mnt/e/Datasets/MSCOCO2017'
+    for split in ['train', 'valid']:
+        annotations_json = os.path.join(root_dir, 'annotations', 'instances_val2017.json' if (split == 'valid') else 'instances_train2017.json')
+        output_json = os.path.join(root_dir, 'DeformableDERT', 'val2017_cocostyle.json' if (split == 'valid') else 'train2017_cocostyle.json')
+
+        with open(annotations_json, 'r') as fp:
+            dataset = json.load(fp)
+        category_id_remap = {}
+        for cat in dataset['categories']:
+            for i in range(0, len(thing_classes_coco)):
+                if cat['name'] in thing_classes_coco[i]:
+                    category_id_remap[cat['id']] = i
+
+        annotations = []
+        for ann in dataset['annotations']:
+            if not ann['category_id'] in category_id_remap:
+                continue
+            ann['segmentation'] = []
+            ann['category_id'] = category_id_remap[ann['category_id']] + 1
+            annotations.append(ann)
+        image_id_set = set([ann['image_id'] for ann in annotations])
+        dataset['images'] = list(filter(lambda x: x['id'] in image_id_set, dataset['images']))
+        dataset['annotations'] = annotations
+        print('MSCOCO-2017 %s: %d images, %d bboxes' % (split, len(dataset['images']), len(dataset['annotations'])))
+        dataset['categories'] = [{'id': 1, 'name': 'person'}, {'id': 2, 'name': 'vehicle'}]
+        with open(output_json, 'w') as fp:
+            json.dump(dataset, fp)
+
+
 class CocoStyleDataset(CocoDetection):
 
     img_dirs = {
@@ -19,6 +54,9 @@ class CocoStyleDataset(CocoDetection):
         },
         'sim10k': {
             'train': 'sim10k/JPEGImages'
+        },
+        'mscoco': {
+            'train': 'images/train2017', 'val': 'images/val2017'
         },
     }
     anno_files = {
@@ -47,6 +85,16 @@ class CocoStyleDataset(CocoDetection):
         'sim10k': {
             'source': {
                 'train': 'sim10k/annotations/sim10k_train_cocostyle.json',
+            },
+        },
+        'mscoco': {
+            'source': {
+                'train': 'DeformableDERT/train2017_cocostyle.json',
+                'val': 'DeformableDERT/val2017_cocostyle.json',
+            },
+            'target': {
+                'train': 'DeformableDERT/train2017_cocostyle.json',
+                'val': 'DeformableDERT/val2017_cocostyle.json',
             },
         },
     }
@@ -206,3 +254,6 @@ class DataPreFetcher:
         self.preload()
         return images, masks, annotations
 
+
+if __name__ == '__main__':
+    convert_coco()

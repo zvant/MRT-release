@@ -35,6 +35,7 @@ class HungarianMatcher(nn.Module):
             alpha, gamma = 0.25, 2.0
             neg_cost_class = (1 - alpha) * (pred_logits ** gamma) * (-(1 - pred_logits + 1e-8).log())
             pos_cost_class = alpha * ((1 - pred_logits) ** gamma) * (-(pred_logits + 1e-8).log())
+            # print(gt_class, pos_cost_class.size(), neg_cost_class.size())
             cost_class = pos_cost_class[:, gt_class] - neg_cost_class[:, gt_class]
             # Compute the L1 cost between boxes
             cost_boxes = torch.cdist(pred_boxes, gt_boxes, p=1)

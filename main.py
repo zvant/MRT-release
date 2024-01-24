@@ -108,8 +108,8 @@ def single_domain_training(model, device):
     val_loader = build_dataloader(args, args.target_dataset, 'target', 'val', val_trans)
     idx_to_class = val_loader.dataset.coco.cats
     # Prepare model for optimization
-    if args.distributed:
-        model = DistributedDataParallel(model, device_ids=[args.gpu])
+    assert not args.distributed
+    # model = DistributedDataParallel(model, device_ids=[args.gpu])
     criterion = build_criterion(args, device)
     optimizer = build_optimizer(args, model)
     lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, args.epoch_lr_drop)
@@ -360,6 +360,7 @@ def main():
     # Build model
     device = torch.device(args.device)
     model = build_model(args, device)
+    print(model)
     if args.resume != "":
         model = resume_and_load(model, args.resume, device)
     # Training or evaluation

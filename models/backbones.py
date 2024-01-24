@@ -1,7 +1,7 @@
 import torch
 import torchvision.ops.misc as misc
 from torchvision.models import resnet18, resnet50, resnet101
-from torchvision.models.resnet import ResNet18_Weights, ResNet50_Weights, ResNet101_Weights
+# from torchvision.models.resnet import ResNet18_Weights, ResNet50_Weights, ResNet101_Weights
 from torchvision.models._utils import IntermediateLayerGetter
 
 from utils import is_main_process
@@ -49,7 +49,7 @@ class ResNet50MultiScale(ResNetMultiScale):
     def get_backbone(self):
         return resnet50(
             replace_stride_with_dilation=[False, False, False],
-            weights=ResNet50_Weights.IMAGENET1K_V1 if is_main_process() else None,
+            # weights=ResNet50_Weights.IMAGENET1K_V1 if is_main_process() else None,
             norm_layer=misc.FrozenBatchNorm2d
         ), [512, 1024, 2048]
 
