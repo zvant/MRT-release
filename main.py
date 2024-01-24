@@ -162,8 +162,8 @@ def cross_domain_mae(model, device):
     start_time = time.time()
     # Build dataloaders
     source_loader = build_dataloader(args, args.source_dataset, 'source', 'train', strong_trans)
-    target_loader = build_dataloader(args, args.target_dataset, 'target', 'train', strong_trans)
-    val_loader = build_dataloader(args, args.target_dataset, 'target', 'val', val_trans)
+    target_loader = build_dataloader_scenes100(args, args.target_dataset, 'train', strong_trans)
+    val_loader = build_dataloader_scenes100(args, args.target_dataset, 'val', val_trans)
     idx_to_class = val_loader.dataset.coco.cats
     # Build MAE branch
     image_size = target_loader.dataset.__getitem__(0)[0].shape[-2:]
@@ -327,20 +327,16 @@ def eval_only(model, device):
     criterion = build_criterion(args, device)
     # Eval source or target dataset
     val_loader = build_dataloader(args, args.target_dataset, 'target', 'val', val_trans)
-    ap50_per_class, epoch_loss_val, coco_data = evaluate(
+    ap50_per_class, epoch_loss_val = evaluate(
         model=model,
         criterion=criterion,
         data_loader_val=val_loader,
-        output_result_labels=True,
+        output_result_labels=False,
         device=device,
         print_freq=args.print_freq,
         flush=args.flush
     )
     print('Evaluation finished. mAPs: ' + str(ap50_per_class) + '. Evaluation loss: ' + str(epoch_loss_val))
-    output_file = output_dir/'evaluation_result_labels.json'
-    print("Writing evaluation result labels to " + str(output_file))
-    with open(output_file, 'w', encoding='utf-8') as fp:
-        json.dump(coco_data, fp)
 
 
 def main():

@@ -1,8 +1,10 @@
 import os
-
+import json
+import copy
 import torch
 from torchvision.datasets.coco import CocoDetection
 from typing import Optional, Callable
+from detectron2.structures import BoxMode
 
 
 def convert_coco():
@@ -190,6 +192,45 @@ class CocoStyleDataset(CocoDetection):
         batched_images, masks = CocoStyleDataset.pad_mask(image_list)
         annotations = [sample[1] for sample in batch]
         return batched_images, masks, annotations
+
+
+class CocoStyleDatasetScenes100(CocoStyleDataset):
+    def __init__(self, video_id, split, transforms):
+        self.split = split
+        if self.split == 'val':
+            self.root_dir = os.path.join(os.path.dirname(__file__), '..', '..', 'Intersections', 'images', 'annotated', video_id)
+            img_dir = os.path.join(self.root_dir, 'unmasked')
+            with open(os.path.join(self.root_dir, 'annotations.json'), 'r') as fp:
+                self.annotations_d2 = json.load(fp)
+            annotations_coco = {'images': [], 'annotations': [], 'categories': [{'id': 1, 'name': 'person'}, {'id': 2, 'name': 'vehicle'}]}
+            for i, im in enumerate(self.annotations_d2):
+                im['id'] = i + 1
+                im['image_id'] = im['id']
+            for im in copy.deepcopy(self.annotations_d2):
+                for ann in im['annotations']:
+                    assert ann['bbox_mode'] == BoxMode.XYXY_ABS
+                    ann['image_id'] = im['id']
+                    ann['id'] = len(annotations_coco['annotations']) + 1
+                    annotations_coco['annotations'].append(ann)
+                del im['annotations']
+                annotations_coco['images'].append(im)
+            self.anno_file = os.path.join('/tmp/mrt_scenes100_%s_valid_coco.json')
+            with open(self.anno_file, 'w') as fp:
+                json.dump(annotations_coco, fp)
+        elif self.split == 'train':
+            self.root_dir = os.path.join(os.path.dirname(__file__), '..', '..', 'Intersections', 'images', 'train_lmdb', video_id)
+            img_dir = os.path.join(self.root_dir, 'jpegs')
+            with open(os.path.join(self.root_dir, 'frames.json'), 'r') as fp:
+                frames = json.load(fp)
+            annotations_coco = {'images': [], 'annotations': [], 'categories': [{'id': 1, 'name': 'person'}, {'id': 2, 'name': 'vehicle'}]}
+            for i, f in enumerate(frames['ifilelist']):
+                annotations_coco['images'].append({'id': i + 1, 'width': frames['meta']['video']['W'], 'height': frames['meta']['video']['H'], 'file_name': f, 'license': 0, 'flickr_url': '', 'coco_url': '', 'date_captured': ''})
+            self.anno_file = os.path.join('/tmp/mrt_scenes100_%s_unlabeled_coco.json')
+            with open(self.anno_file, 'w') as fp:
+                json.dump(annotations_coco, fp)
+        else:
+            raise NotImplementedError
+        super(CocoStyleDataset, self).__init__(root=img_dir, annFile=self.anno_file, transforms=transforms)
 
 
 class CocoStyleDatasetTeaching(CocoStyleDataset):

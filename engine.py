@@ -1,6 +1,7 @@
 import time
 import datetime
 import json
+import tqdm
 import torch
 from torch.utils.data import DataLoader
 
@@ -250,7 +251,7 @@ def evaluate(model: torch.nn.Module,
     else:
         raise ValueError('Unsupported dataset type.')
     epoch_loss = 0.0
-    for i, (images, masks, annotations) in enumerate(data_loader_val):
+    for i, (images, masks, annotations) in tqdm.tqdm(enumerate(data_loader_val), ascii=True, total=len(data_loader_val)):
         # To CUDA
         images = images.to(device)
         masks = masks.to(device)
@@ -281,9 +282,6 @@ def evaluate(model: torch.nn.Module,
         # Loss
         loss, loss_dict = criterion(out, annotations)
         epoch_loss += loss
-        if is_main_process() and (i + 1) % print_freq == 0:
-            print('Evaluation : [ ' + str(i + 1) + '/' + str(len(data_loader_val)) + ' ] ' +
-                  'total loss: ' + str(loss.detach().cpu().numpy()), flush=flush)
         # mAP
         orig_image_sizes = torch.stack([anno['orig_size'] for anno in annotations], dim=0)
         results = post_process(logits_all[-1], boxes_all[-1], orig_image_sizes, 100)
