@@ -66,8 +66,11 @@ class RandomSizeCropImgAnno(object):
         return i, j, th, tw
 
     def __call__(self, image, annotation=None):
-        w = random.randint(self.min_size, min(image.width, self.max_size))
-        h = random.randint(self.min_size, min(image.height, self.max_size))
+        try:
+            w = random.randint(self.min_size, min(image.width, self.max_size))
+            h = random.randint(self.min_size, min(image.height, self.max_size))
+        except:
+            return image, annotation
         region = self.get_region(image, h, w)
         image = tv_f.crop(image, *region)
         if annotation is None:

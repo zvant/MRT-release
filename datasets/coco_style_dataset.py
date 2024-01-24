@@ -8,6 +8,7 @@ from typing import Optional, Callable
 def convert_coco():
     import json
     import tqdm
+    import random
 
     thing_classes_coco = [['person'], ['car', 'bus', 'truck']]
     thing_classes = ['person', 'vehicle']
@@ -15,6 +16,7 @@ def convert_coco():
     for split in ['train', 'valid']:
         annotations_json = os.path.join(root_dir, 'annotations', 'instances_val2017.json' if (split == 'valid') else 'instances_train2017.json')
         output_json = os.path.join(root_dir, 'DeformableDERT', 'val2017_cocostyle.json' if (split == 'valid') else 'train2017_cocostyle.json')
+        output_small_json = os.path.join(root_dir, 'DeformableDERT', 'val2017_small_cocostyle.json' if (split == 'valid') else 'train2017_small_cocostyle.json')
 
         with open(annotations_json, 'r') as fp:
             dataset = json.load(fp)
@@ -38,6 +40,13 @@ def convert_coco():
         dataset['categories'] = [{'id': 1, 'name': 'person'}, {'id': 2, 'name': 'vehicle'}]
         with open(output_json, 'w') as fp:
             json.dump(dataset, fp)
+        random.shuffle(dataset['images'])
+        dataset['images'] = dataset['images'][:len(dataset['images']) // 100]
+        image_id_set = set([im['id'] for im in dataset['images']])
+        dataset['annotations'] = list(filter(lambda x: x['image_id'] in image_id_set, dataset['annotations']))
+        print('MSCOCO-2017 %s: %d images, %d bboxes' % (split, len(dataset['images']), len(dataset['annotations'])))
+        with open(output_small_json, 'w') as fp:
+            json.dump(dataset, fp)
 
 
 class CocoStyleDataset(CocoDetection):
@@ -57,6 +66,9 @@ class CocoStyleDataset(CocoDetection):
         },
         'mscoco': {
             'train': 'images/train2017', 'val': 'images/val2017'
+        },
+        'mscoco_small': {
+            'train': 'images/train2017', 'val': 'images/train2017'
         },
     }
     anno_files = {
@@ -95,6 +107,16 @@ class CocoStyleDataset(CocoDetection):
             'target': {
                 'train': 'DeformableDERT/train2017_cocostyle.json',
                 'val': 'DeformableDERT/val2017_cocostyle.json',
+            },
+        },
+        'mscoco_small': {
+            'source': {
+                'train': 'DeformableDERT/train2017_small_cocostyle.json',
+                'val': 'DeformableDERT/train2017_small_cocostyle.json',
+            },
+            'target': {
+                'train': 'DeformableDERT/train2017_small_cocostyle.json',
+                'val': 'DeformableDERT/train2017_small_cocostyle.json',
             },
         },
     }

@@ -32,6 +32,25 @@ def train_one_epoch_standard(model: torch.nn.Module,
     epoch_loss = torch.zeros(1, dtype=torch.float, device=device, requires_grad=False)
     epoch_loss_dict = defaultdict(float)
     for i in range(len(data_loader)):
+        # import matplotlib.pyplot as plt
+        # import numpy as np
+        # from PIL import Image, ImageDraw, ImageFont
+        # plt.figure()
+        # plt.subplot(1,2,1); _im=images[0].detach().cpu().numpy().transpose(1,2,0); _im-=_im.min(); _im/=_im.max(); _im=(_im*255).astype(np.uint8)
+        # H, W, _ = _im.shape
+        # # boxes = annotations[0]['boxes'] * min(W, H)
+        # boxes = annotations[0]['boxes']
+        # boxes[:, 0] *= W; boxes[:, 2] *= W
+        # boxes[:, 1] = boxes[:, 1] * H; boxes[:, 3] *= H
+        # _im = Image.fromarray(_im, 'RGB')
+        # draw = ImageDraw.Draw(_im)
+        # for x, y, w, h in boxes:
+        #     x1, y1, x2, y2 = x - w / 2, y - h / 2, x + w / 2, y + h / 2
+        #     draw.line(((x1, y1), (x2, y1), (x2, y2), (x1, y2), (x1, y1)), fill='#FF0000', width=3)
+        # _im = np.array(_im)
+        # plt.imshow(_im)
+        # plt.subplot(1,2,2); _im=masks[0].detach().cpu().numpy().astype(np.float32); plt.imshow(_im)
+        # plt.show()
         # Forward
         out = model(images, masks)
         # Loss
@@ -52,6 +71,7 @@ def train_one_epoch_standard(model: torch.nn.Module,
         if is_main_process() and (i + 1) % print_freq == 0:
             print('Training epoch ' + str(epoch) + ' : [ ' + str(i + 1) + '/' + str(len(data_loader)) + ' ] ' +
                   'total loss: ' + str(loss.detach().cpu().numpy()), flush=flush)
+        torch.cuda.empty_cache()
     # Final process of training statistic
     epoch_loss /= len(data_loader)
     for k, v in epoch_loss_dict.items():
