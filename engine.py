@@ -70,8 +70,8 @@ def train_one_epoch_standard(model: torch.nn.Module,
         # Log
         if is_main_process() and (i + 1) % print_freq == 0:
             print('Training epoch ' + str(epoch) + ' : [ ' + str(i + 1) + '/' + str(len(data_loader)) + ' ] ' +
-                  'total loss: ' + str(loss.detach().cpu().numpy()), flush=flush)
-        torch.cuda.empty_cache()
+                  'total loss: ' + str(loss.detach().cpu().numpy()) +
+                  ' %.3f iterations/s' % (i / (time.time() - start_time)), flush=flush)
     # Final process of training statistic
     epoch_loss /= len(data_loader)
     for k, v in epoch_loss_dict.items():
