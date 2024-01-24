@@ -209,8 +209,11 @@ class CocoStyleDatasetScenes100(CocoStyleDataset):
             for im in copy.deepcopy(self.annotations_d2):
                 for ann in im['annotations']:
                     assert ann['bbox_mode'] == BoxMode.XYXY_ABS
+                    ann['iscrowd'] = 0
+                    ann['area'] = (ann['bbox'][2] - ann['bbox'][0]) * (ann['bbox'][3] - ann['bbox'][1])
                     ann['image_id'] = im['id']
                     ann['id'] = len(annotations_coco['annotations']) + 1
+                    ann['category_id'] = ann['category_id'] + 1
                     annotations_coco['annotations'].append(ann)
                 del im['annotations']
                 annotations_coco['images'].append(im)
@@ -223,7 +226,7 @@ class CocoStyleDatasetScenes100(CocoStyleDataset):
             with open(os.path.join(self.root_dir, 'frames.json'), 'r') as fp:
                 frames = json.load(fp)
             annotations_coco = {'images': [], 'annotations': [], 'categories': [{'id': 1, 'name': 'person'}, {'id': 2, 'name': 'vehicle'}]}
-            for i, f in enumerate(frames['ifilelist']):
+            for i, f in enumerate(frames['ifilelist'][::3]):
                 annotations_coco['images'].append({'id': i + 1, 'width': frames['meta']['video']['W'], 'height': frames['meta']['video']['H'], 'file_name': f, 'license': 0, 'flickr_url': '', 'coco_url': '', 'date_captured': ''})
             self.anno_file = os.path.join('/tmp/mrt_scenes100_%s_unlabeled_coco.json')
             with open(self.anno_file, 'w') as fp:
@@ -250,6 +253,41 @@ class CocoStyleDatasetTeaching(CocoStyleDataset):
 
     def __getitem__(self, idx):
         image, annotation = super(CocoStyleDatasetTeaching, self).__getitem__(idx)
+        teacher_image, annotation = self.weak_aug(image, annotation)
+        student_image, _ = self.strong_aug(teacher_image, None)
+        teacher_image, annotation = self.final_trans(teacher_image, annotation)
+        student_image, _ = self.final_trans(student_image, None)
+        return teacher_image, student_image, annotation
+
+    @staticmethod
+    def collate_fn_teaching(batch):
+        """
+        Function used in dataloader.
+        batch: [sample_{i} for i in range(batch_size)]
+            sample_{i}: (teacher_image, student_image, annotation)
+        """
+        teacher_image_list = [sample[0] for sample in batch]
+        batched_teacher_images, teacher_masks = CocoStyleDataset.pad_mask(teacher_image_list)
+        student_image_list = [sample[1] for sample in batch]
+        batched_student_images, student_masks = CocoStyleDataset.pad_mask(student_image_list)
+        annotations = [sample[2] for sample in batch]
+        batched_images = torch.stack([batched_teacher_images, batched_student_images], dim=0)
+        assert teacher_masks.equal(student_masks)
+        return batched_images, teacher_masks, annotations
+
+
+class CocoStyleDatasetTeachingScenes100(CocoStyleDatasetScenes100):
+    def __init__(self, video_id, split,
+                 weak_aug: Callable,
+                 strong_aug: Callable,
+                 final_trans: Callable):
+        super(CocoStyleDatasetTeachingScenes100, self).__init__(video_id, split, weak_aug)
+        self.weak_aug = weak_aug
+        self.strong_aug = strong_aug
+        self.final_trans = final_trans
+
+    def __getitem__(self, idx):
+        image, annotation = super(CocoStyleDatasetTeachingScenes100, self).__getitem__(idx)
         teacher_image, annotation = self.weak_aug(image, annotation)
         student_image, _ = self.strong_aug(teacher_image, None)
         teacher_image, annotation = self.final_trans(teacher_image, annotation)

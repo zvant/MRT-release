@@ -42,4 +42,8 @@ CUDA_VISIBLE_DEVICES=3 nohup python main.py --backbone resnet50 --num_encoder_la
 
 # cross
 
-python main.py --backbone resnet50 --num_encoder_layers 6 --num_decoder_layers 6 --num_classes 3 --dropout 0.0 --data_root /mnt/e/Datasets/MSCOCO2017 --source_dataset mscoco --target_dataset 001 --batch_size 2 --eval_batch_size 6 --lr 2e-5 --lr_backbone 2e-6 --lr_linear_proj 2e-6 --epoch 3 --epoch_lr_drop 2 --mode cross_domain_mae --output_dir outputs/cross/001 --resume r50_model_best.pth
+python main.py --backbone resnet50 --num_encoder_layers 6 --num_decoder_layers 6 --num_classes 3 --dropout 0.0 --data_root /mnt/e/Datasets/MSCOCO2017 --source_dataset mscoco --target_dataset 001 --batch_size 3 --eval_batch_size 6 --lr 2e-5 --lr_backbone 2e-6 --lr_linear_proj 2e-6 --epoch 3 --epoch_lr_drop 2 --mode cross_domain_mae --output_dir outputs/cross/001 --resume r50_model_best.pth
+
+# teach
+
+python main.py --backbone resnet50 --num_encoder_layers 6 --num_decoder_layers 6 --num_classes 3 --dropout 0.0 --data_root /mnt/e/Datasets/MSCOCO2017 --source_dataset mscoco --target_dataset 001 --batch_size 3 --eval_batch_size 6 --lr 2e-5 --lr_backbone 2e-6 --lr_linear_proj 2e-6 --epoch 3 --epoch_lr_drop 2 --mode teaching --output_dir outputs/teach/001 --resume outputs/cross/001/model_last.pth --epoch_retrain 2 --epoch_mae_decay 5 --alpha_dt 0.9 --max_dt 0.6 --teach_box_loss True

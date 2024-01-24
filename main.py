@@ -229,8 +229,9 @@ def teaching(model_stu, device):
     start_time = time.time()
     # Build dataloaders
     source_loader = build_dataloader(args, args.source_dataset, 'source', 'train', strong_trans)
-    target_loader = build_dataloader_teaching(args, args.target_dataset, 'target', 'train')
-    val_loader = build_dataloader(args, args.target_dataset, 'target', 'val', val_trans)
+    target_loader = build_dataloader_teaching_scenes100(args, args.target_dataset, 'train')
+    # target_loader = build_dataloader_teaching(args, args.target_dataset, 'target', 'train')
+    val_loader = build_dataloader_scenes100(args, args.target_dataset, 'val', val_trans)
     idx_to_class = val_loader.dataset.coco.cats
     # Build teacher model
     model_tch = build_teacher(args, model_stu, device)
@@ -240,9 +241,9 @@ def teaching(model_stu, device):
     image_size = target_loader.dataset.__getitem__(0)[0].shape[-2:]
     model_stu.transformer.build_mae_decoder(image_size, args.mae_layers, device, model_stu.backbone.num_channels[0])
     # Prepare model for optimization
-    if args.distributed:
-        model_stu = DistributedDataParallel(model_stu, device_ids=[args.gpu], find_unused_parameters=True)
-        model_tch = DistributedDataParallel(model_tch, device_ids=[args.gpu])
+    # if args.distributed:
+    #     model_stu = DistributedDataParallel(model_stu, device_ids=[args.gpu], find_unused_parameters=True)
+    #     model_tch = DistributedDataParallel(model_tch, device_ids=[args.gpu])
     criterion = build_criterion(args, device)
     criterion_pseudo = build_criterion(args, device, box_loss=args.teach_box_loss)
     optimizer = build_optimizer(args, model_stu)
@@ -255,9 +256,9 @@ def teaching(model_stu, device):
     ap50_best = -1.0
     for epoch in range(args.epoch):
         # Set the epoch for the sampler
-        if args.distributed and hasattr(source_loader.sampler, 'set_epoch'):
-            source_loader.sampler.set_epoch(epoch)
-            target_loader.sampler.set_epoch(epoch)
+        # if args.distributed and hasattr(source_loader.sampler, 'set_epoch'):
+        #     source_loader.sampler.set_epoch(epoch)
+        #     target_loader.sampler.set_epoch(epoch)
         loss_train, loss_source_dict, loss_target_dict = train_one_epoch_teaching(
             student_model=model_stu,
             teacher_model=model_tch,

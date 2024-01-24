@@ -2,7 +2,7 @@ import torch
 from torch.utils.data import DataLoader, DistributedSampler
 from torch.utils.data.sampler import BatchSampler, RandomSampler
 from datasets.coco_style_dataset import CocoStyleDataset, CocoStyleDatasetTeaching
-from datasets.coco_style_dataset import CocoStyleDatasetScenes100
+from datasets.coco_style_dataset import CocoStyleDatasetScenes100, CocoStyleDatasetTeachingScenes100
 from models.backbones import ResNet50MultiScale, ResNet18MultiScale, ResNet101MultiScale
 from models.positional_encoding import PositionEncodingSine
 from models.deformable_detr import DeformableDETR
@@ -61,6 +61,13 @@ def build_dataloader_teaching(args, dataset_name, domain, split):
                              batch_sampler=batch_sampler,
                              collate_fn=CocoStyleDatasetTeaching.collate_fn_teaching,
                              num_workers=args.num_workers)
+    return data_loader
+
+
+def build_dataloader_teaching_scenes100(args, video_id, split):
+    dataset = CocoStyleDatasetTeachingScenes100(video_id, split, weak_aug=weak_aug, strong_aug=strong_aug, final_trans=base_trans)
+    batch_sampler = build_sampler(args, dataset, split)
+    data_loader = DataLoader(dataset=dataset, batch_sampler=batch_sampler, collate_fn=CocoStyleDatasetTeachingScenes100.collate_fn_teaching, num_workers=args.num_workers)
     return data_loader
 
 

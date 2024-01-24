@@ -170,10 +170,10 @@ class SetCriterion(nn.Module):
             self.logits_count[label] += 1
 
     def dynamic_threshold(self, thresholds):
-        for s in self.logits_sum:
-            all_reduce(s)
-        for n in self.logits_count:
-            all_reduce(n)
+        # for s in self.logits_sum:
+        #     all_reduce(s)
+        # for n in self.logits_count:
+        #     all_reduce(n)
         logits_means = [s.item() / n.item() if n > 0 else 0.0 for s, n in zip(self.logits_sum, self.logits_count)]
         assert len(logits_means) == len(thresholds)
         new_thresholds = [self.gamma_dt * threshold + (1 - self.gamma_dt) * self.alpha_dt * math.sqrt(mean)

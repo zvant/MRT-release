@@ -135,7 +135,8 @@ def train_one_epoch_with_mae(model: torch.nn.Module,
         # Log
         if is_main_process() and (i + 1) % print_freq == 0:
             print('Cross-domain MAE training epoch ' + str(epoch) + ' : [ ' + str(i + 1) + '/' +
-                  str(total_iters) + ' ] ' + 'total loss: ' + str(loss.detach().cpu().numpy()), flush=flush)
+                  str(total_iters) + ' ] ' + 'total loss: ' + str(loss.detach().cpu().numpy()) +
+                  ' %.3f iterations/s' % (i / (time.time() - start_time)), flush=flush)
     # Final process of training statistic
     epoch_loss /= total_iters
     for k, v in epoch_loss_dict.items():
