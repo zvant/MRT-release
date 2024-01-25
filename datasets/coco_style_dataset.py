@@ -217,7 +217,7 @@ class CocoStyleDatasetScenes100(CocoStyleDataset):
                     annotations_coco['annotations'].append(ann)
                 del im['annotations']
                 annotations_coco['images'].append(im)
-            self.anno_file = os.path.join('/tmp/mrt_scenes100_%s_valid_coco.json')
+            self.anno_file = os.path.join('/tmp/mrt_scenes100_%s_valid_coco.json' % video_id)
             with open(self.anno_file, 'w') as fp:
                 json.dump(annotations_coco, fp)
         elif self.split == 'train':
@@ -228,7 +228,7 @@ class CocoStyleDatasetScenes100(CocoStyleDataset):
             annotations_coco = {'images': [], 'annotations': [], 'categories': [{'id': 1, 'name': 'person'}, {'id': 2, 'name': 'vehicle'}]}
             for i, f in enumerate(frames['ifilelist'][::6]):
                 annotations_coco['images'].append({'id': i + 1, 'width': frames['meta']['video']['W'], 'height': frames['meta']['video']['H'], 'file_name': f, 'license': 0, 'flickr_url': '', 'coco_url': '', 'date_captured': ''})
-            self.anno_file = os.path.join('/tmp/mrt_scenes100_%s_unlabeled_coco.json')
+            self.anno_file = os.path.join('/tmp/mrt_scenes100_%s_unlabeled_coco.json' % video_id)
             with open(self.anno_file, 'w') as fp:
                 json.dump(annotations_coco, fp)
         else:
