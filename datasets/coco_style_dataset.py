@@ -226,7 +226,7 @@ class CocoStyleDatasetScenes100(CocoStyleDataset):
             with open(os.path.join(self.root_dir, 'frames.json'), 'r') as fp:
                 frames = json.load(fp)
             annotations_coco = {'images': [], 'annotations': [], 'categories': [{'id': 1, 'name': 'person'}, {'id': 2, 'name': 'vehicle'}]}
-            for i, f in enumerate(frames['ifilelist'][::3]):
+            for i, f in enumerate(frames['ifilelist'][::6]):
                 annotations_coco['images'].append({'id': i + 1, 'width': frames['meta']['video']['W'], 'height': frames['meta']['video']['H'], 'file_name': f, 'license': 0, 'flickr_url': '', 'coco_url': '', 'date_captured': ''})
             self.anno_file = os.path.join('/tmp/mrt_scenes100_%s_unlabeled_coco.json')
             with open(self.anno_file, 'w') as fp:

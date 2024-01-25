@@ -75,12 +75,12 @@ def run_mrt(args):
         for v in vids_batch:
             log_i = 'log_mrt_cross_%s_%s_GPU%s.log' % (v, socket.gethostname(), env_i['CUDA_VISIBLE_DEVICES'])
             log_i = os.path.join(basedir, log_i)
-            cmd_i = [python_path, os.path.join(basedir, 'main.py'), '--backbone', 'resnet50', '--num_encoder_layers', '6', '--num_decoder_layers', '6', '--num_classes', '3', '--dropout', '0.0', '--data_root', '../MSCOCO2017', '--source_dataset', 'mscoco', '--target_dataset', v, '--batch_size', '1', '--eval_batch_size', '6', '--lr', '2e-5', '--lr_backbone', '2e-6', '--lr_linear_proj', '2e-6', '--epoch', '3', '--epoch_lr_drop', '2', '--mode', 'cross_domain_mae', '--output_dir', 'outputs/cross/%s' % v, '--resume', os.path.join(basedir, 'r50_model_best.pth')]
+            cmd_i = [python_path, os.path.join(basedir, 'main.py'), '--backbone', 'resnet50', '--num_encoder_layers', '6', '--num_decoder_layers', '6', '--num_classes', '3', '--dropout', '0.0', '--data_root', '../MSCOCO2017', '--source_dataset', 'mscoco', '--target_dataset', v, '--batch_size', '2', '--eval_batch_size', '6', '--lr', '2e-5', '--lr_backbone', '2e-6', '--lr_linear_proj', '2e-6', '--epoch', '4', '--epoch_lr_drop', '2', '--mode', 'cross_domain_mae', '--output_dir', 'outputs/cross/%s' % v, '--resume', os.path.join(basedir, 'r50_model_best.pth')]
             commands_i.append([cmd_i, env_i, log_i])
 
             log_i = 'log_mrt_teach_%s_%s_GPU%s.log' % (v, socket.gethostname(), env_i['CUDA_VISIBLE_DEVICES'])
             log_i = os.path.join(basedir, log_i)
-            cmd_i = [python_path, os.path.join(basedir, 'main.py'), '--backbone', 'resnet50', '--num_encoder_layers', '6', '--num_decoder_layers', '6', '--num_classes', '3', '--dropout', '0.0', '--data_root', '../MSCOCO2017', '--source_dataset', 'mscoco', '--target_dataset', v, '--batch_size', '1', '--eval_batch_size', '6', '--lr', '2e-5', '--lr_backbone', '2e-6', '--lr_linear_proj', '2e-6', '--epoch', '3', '--epoch_lr_drop', '2', '--mode', 'teaching', '--output_dir', 'outputs/teach/%s' % v, '--resume', os.path.join(basedir, 'outputs/cross/%s/model_last.pth' % v)]
+            cmd_i = [python_path, os.path.join(basedir, 'main.py'), '--backbone', 'resnet50', '--num_encoder_layers', '6', '--num_decoder_layers', '6', '--num_classes', '3', '--dropout', '0.0', '--data_root', '../MSCOCO2017', '--source_dataset', 'mscoco', '--target_dataset', v, '--batch_size', '2', '--eval_batch_size', '6', '--lr', '2e-5', '--lr_backbone', '2e-6', '--lr_linear_proj', '2e-6', '--epoch', '4', '--epoch_lr_drop', '2', '--mode', 'teaching', '--output_dir', 'outputs/teach/%s' % v, '--resume', os.path.join(basedir, 'outputs/cross/%s/model_last.pth' % v)]
             commands_i.append([cmd_i, env_i, log_i])
 
         commands_i.append([[python_path, os.path.join(basedir, 'run_experiments.py'), '--opt', 'test', '--hold', args.hold], env_i, os.path.join(basedir, 'log_mrt_cross_999_%s_GPU%s.log' % (socket.gethostname(), env_i['CUDA_VISIBLE_DEVICES']))])
@@ -108,4 +108,4 @@ if __name__ == '__main__':
         test_gpu(args)
     else: pass
 
-# python run_experiments.py --opt run --ids 001 003 006 --gpus 0
+# python run_experiments.py --opt run --ids 001 003 005 006 007 008 009 011 012 013 014 015 016 017 019 020 023 025 027 034 036 039 040 043 044 046 048 049 050 051 053 054 055 056 058 059 060 066 067 068 069 070 071 073 074 075 076 077 080 085 086 087 088 090 091 092 093 094 095 098 099 105 108 110 112 114 115 116 117 118 125 127 128 129 130 131 132 135 136 141 146 148 149 150 152 154 156 158 159 160 161 164 167 169 170 171 172 175 178 179 --gpus 0 1 2 3 6

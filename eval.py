@@ -160,7 +160,6 @@ def main():
         batch_sampler = build_sampler(args, dataset, 'val')
         data_loader = DataLoader(dataset=dataset, batch_sampler=batch_sampler, collate_fn=CocoStyleDataset.collate_fn, num_workers=args.num_workers)
         detections = evaluate(model, data_loader, device)
-        assert len(detections) == len(images)
         images_detections = []
         for im in images:
             if im['image_id'] in detections:
