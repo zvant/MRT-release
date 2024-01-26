@@ -108,4 +108,21 @@ if __name__ == '__main__':
         test_gpu(args)
     else: pass
 
-# nohup python run_experiments.py --opt run --ids 001 003 005 006 007 008 009 011 012 013 014 015 016 017 019 020 023 025 027 034 036 039 040 043 044 046 048 049 050 051 053 054 055 056 058 059 060 066 067 068 069 070 071 073 074 075 076 077 080 085 086 087 088 090 091 092 093 094 095 098 099 105 108 110 112 114 115 116 117 118 125 127 128 129 130 131 132 135 136 141 146 148 149 150 152 154 156 158 159 160 161 164 167 169 170 171 172 175 178 179 --gpus 0 1 2 3 6 &> log_batch.log &
+'''
+nohup python run_experiments.py --opt run --ids 006 007 011 015 016 046 049 053 054 058 059 060 066 067 068 069 070 071 073 074 075 076 077 080 085 086 087 088 090 091 092 093 094 095 098 099 105 108 110 112 114 115 116 117 118 125 127 128 129 130 131 132 135 136 141 146 148 149 150 152 154 156 158 159 160 161 164 167 169 170 171 172 175 178 179 --gpus 0 1 2 3 6 &> log_batch.log &
+
+nohup python run_experiments.py --opt run --ids 006 007 011 015 016 046 --gpus 6 &> log_batch_bigrail.log &
+
+cross OOM:
+049
+
+finished:
+001 003 005 008 009 012 013 014 017 019 020 023 025 027 034 036 039 040 048 051 044 056 043 050 055
+
+for V in 043 050 055 ; do \
+    scp -P 130 "zekun@130.245.4.111:/data/add_disk0/zekun/MRT-release/outputs/cross/${V}/model_last.pth" "/mnt/f/intersections_results/cvpr24/mrt/cross/${V}.pth" ; \
+    scp -P 130 "zekun@130.245.4.111:/data/add_disk0/zekun/MRT-release/outputs/teach/${V}/model_last_stu.pth" "/mnt/f/intersections_results/cvpr24/mrt/student/${V}.pth" ; \
+    scp -P 130 "zekun@130.245.4.111:/data/add_disk0/zekun/MRT-release/outputs/teach/${V}/model_last_tch.pth" "/mnt/f/intersections_results/cvpr24/mrt/teacher/${V}.pth" ; \
+done
+
+'''

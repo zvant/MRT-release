@@ -71,7 +71,7 @@ def get_args_parser(parser):
     parser.add_argument('--alpha_ema', default=0.9996, type=float)
 
     # Dataset parameters
-    parser.add_argument('--dataset', default='mscoco', type=str)
+    parser.add_argument('--dataset', type=str)
 
     # Retraining parameters
     parser.add_argument('--epoch_retrain', default=40, type=int)
@@ -99,6 +99,8 @@ def get_args_parser(parser):
     parser.add_argument('--flush', default=True, type=bool)
     parser.add_argument("--resume", default="", type=str)
     parser.add_argument("--distributed", default=False, type=bool)
+
+    parser.add_argument("--opt", type=str)
 
 
 @torch.no_grad()
@@ -142,14 +144,13 @@ def evaluate(model, data_loader_val, device):
     return results_all
 
 
-def main():
+def eval_single(args):
     # for key, value in args.__dict__.items():
     #     print(key, value, flush=args.flush)
     # Build model
     device = torch.device(args.device)
     model = build_model(args, device)
-    if args.resume != "":
-        model = resume_and_load(model, args.resume, device)
+    model = resume_and_load(model, args.resume, device)
     # print(model, flush=True)
 
     if args.dataset == 'mscoco':
@@ -210,9 +211,112 @@ def main():
     return resuls_AP
 
 
+def eval_base_scenes100(args):
+    device = torch.device(args.device)
+    model = build_model(args, device)
+    model = resume_and_load(model, args.resume, device)
+    results_all = {}
+
+    for video_id in video_id_list:
+        dataset = CocoStyleDatasetScenes100(video_id, 'val', val_trans)
+        batch_sampler = build_sampler(args, dataset, 'val')
+        data_loader = DataLoader(dataset=dataset, batch_sampler=batch_sampler, collate_fn=CocoStyleDatasetScenes100.collate_fn, num_workers=args.num_workers)
+        detections = evaluate(model, data_loader, device)
+        images_detections = copy.deepcopy(dataset.annotations_d2)
+        assert len(images_detections) == len(detections)
+        for im in images_detections:
+            im['annotations'] = detections[im['image_id']]
+        with contextlib.redirect_stdout(open(os.devnull, 'w')):
+            resuls_AP = evaluate_masked(video_id, images_detections)
+
+        print(video_id)
+        print(   '             %s' % '/'.join(resuls_AP['metrics']))
+        for c in sorted(resuls_AP['results'].keys()):
+            print('%10s  ' % c, end='')
+            print('/'.join(map(lambda x: '%05.2f' % (x * 100), resuls_AP['results'][c])))
+        results_all[video_id] = resuls_AP
+    with open('results_AP_base.json', 'w') as fp:
+        json.dump(results_all, fp)
+
+
+def apg_scenes100(args):
+    import glob
+    import matplotlib.pyplot as plt
+
+    ckpts = sorted(glob.glob(os.path.join(args.resume, '*.pth')))
+    ckpts = [(os.path.basename(f).split('.')[0], f) for f in ckpts]
+    print('%d presented video checkpoints:' % len(ckpts))
+    print(' '.join([v for (v, _) in ckpts]))
+    print('missing:')
+    print(' '.join(sorted(list(set(video_id_list) - set([v for (v, _) in ckpts])))))
+
+    device = torch.device(args.device)
+    model = build_model(args, device)
+    with open('results_AP_base.json', 'r') as fp:
+        base_AP = json.load(fp)
+    results_file = os.path.join(args.resume, 'results_AP')
+
+    results = {}
+    for video_id, f in ckpts:
+        model = resume_and_load(model, f, device)
+        dataset = CocoStyleDatasetScenes100(video_id, 'val', val_trans)
+        batch_sampler = build_sampler(args, dataset, 'val')
+        data_loader = DataLoader(dataset=dataset, batch_sampler=batch_sampler, collate_fn=CocoStyleDatasetScenes100.collate_fn, num_workers=args.num_workers)
+        detections = evaluate(model, data_loader, device)
+        images_detections = copy.deepcopy(dataset.annotations_d2)
+        assert len(images_detections) == len(detections)
+        for im in images_detections:
+            im['annotations'] = detections[im['image_id']]
+        with contextlib.redirect_stdout(open(os.devnull, 'w')):
+            results[video_id] = evaluate_masked(video_id, images_detections)
+
+    videos = sorted(list(results.keys()))
+    categories = ['person', 'vehicle', 'overall', 'weighted']
+    improvements = {c: [] for c in categories}
+    for video_id in videos:
+        AP1, AP2 = base_AP[video_id]['results'], results[video_id]['results']
+        for cat in categories:
+            improvements[cat].append([AP2[cat][0] - AP1[cat][0], AP2[cat][1] - AP1[cat][1]])
+    for cat in categories:
+        improvements[cat] = np.array(improvements[cat]) * 100.0
+    xs = np.arange(0, len(videos), 1)
+    fig, axes = plt.subplots(2, 2, figsize=(28, 16))
+    axes = axes.reshape(-1)
+    for i in range(0, len(categories)):
+        axes[i].plot([-1, xs.max() + 1], [0, 0], 'k-')
+        axes[i].plot(xs, improvements[categories[i]][:, 0], 'r.-')
+        axes[i].plot(xs, improvements[categories[i]][:, 1], 'b.-')
+        axes[i].legend(['0', 'mAP %.4f' % improvements[categories[i]][:, 0].mean(), 'AP50 %.4f' % improvements[categories[i]][:, 1].mean()])
+        axes[i].set_xticks(xs)
+        axes[i].set_xticklabels(videos, rotation='vertical', fontsize=10)
+        axes[i].set_xlim(0, xs.max())
+        # axes[i].set_ylim(-3, 3)
+        axes[i].set_ylabel('AP improvement (0-100)')
+        axes[i].grid(True)
+        axes[i].set_title('<%s>' % (categories[i]))
+    # plt.tight_layout()
+    plt.suptitle(results_file)
+    plt.subplots_adjust(left=0.05, right=0.95, top=0.95, bottom=0.05)
+    plt.savefig(results_file + '.pdf')
+    plt.close()
+    print('saved to:', results_file)
+
+
 if __name__ == '__main__':
     # Parse arguments
     parser_main = argparse.ArgumentParser('Deformable DETR Detector', add_help=False)
     get_args_parser(parser_main)
     args = parser_main.parse_args()
-    main()
+    if args.opt == 'eval':
+        eval_single(args)
+    elif args.opt == 'base':
+        eval_base_scenes100(args)
+    elif args.opt == 'compare':
+        apg_scenes100(args)
+
+'''
+python eval.py --opt eval --num_classes 3 --resume r50_model_best.pth --dataset 001
+python eval.py --opt base --num_classes 3 --resume r50_model_best.pth
+
+python eval.py --opt compare --num_classes 3 --resume /mnt/f/intersections_results/cvpr24/mrt/cross
+'''
