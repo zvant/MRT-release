@@ -6,6 +6,7 @@ import sys
 import json
 import os
 import time
+import gc
 import contextlib
 from pathlib import Path
 import numpy as np
@@ -302,6 +303,31 @@ def apg_scenes100(args):
     print('saved to:', results_file)
 
 
+def inference_throughput(args):
+    device = torch.device(args.device)
+    model = build_model(args, device)
+    model = resume_and_load(model, args.resume, device)
+    model.eval()
+
+    dataset = CocoStyleDatasetScenes100('001', 'val', val_trans)
+    batch_sampler = build_sampler(args, dataset, 'val')
+    data_loader = DataLoader(dataset=dataset, batch_sampler=batch_sampler, collate_fn=CocoStyleDatasetScenes100.collate_fn, num_workers=args.num_workers)
+    images_preload = []
+    for i, (images, masks, _) in tqdm.tqdm(enumerate(data_loader), ascii=True, total=len(data_loader)):
+        images_preload.append([images.to(device), masks.to(device)])
+    images_preload = images_preload[:10]
+    gc.collect()
+    torch.cuda.empty_cache()
+    N1, N2 = 100, 400
+    with torch.no_grad():
+        for i in tqdm.tqdm(range(0, N2 + N1), ascii=True):
+            if i == N1: t = time.time()
+            if i == N2: t = time.time() - t
+            model(*images_preload[i % len(images_preload)])
+    tp = (N2 - N1) / t
+    print('%.3f images/s, %.3f ms/image' % (tp, 1000 / tp))
+
+
 if __name__ == '__main__':
     # Parse arguments
     parser_main = argparse.ArgumentParser('Deformable DETR Detector', add_help=False)
@@ -313,10 +339,13 @@ if __name__ == '__main__':
         eval_base_scenes100(args)
     elif args.opt == 'compare':
         apg_scenes100(args)
+    elif args.opt == 'tp':
+        inference_throughput(args)
 
 '''
 python eval.py --opt eval --num_classes 3 --resume r50_model_best.pth --dataset 001
 python eval.py --opt base --num_classes 3 --resume r50_model_best.pth
+python eval.py --opt tp --num_classes 3 --resume r50_model_best.pth --batch_size 1
 
 python eval.py --opt compare --num_classes 3 --resume /mnt/f/intersections_results/cvpr24/mrt/cross
 '''
