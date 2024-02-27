@@ -328,6 +328,27 @@ def inference_throughput(args):
     print('%.3f images/s, %.3f ms/image' % (tp, 1000 / tp))
 
 
+def inference_flops(args):
+    from calflops import calculate_flops
+
+    device = torch.device(args.device)
+    model = build_model(args, device)
+    model = resume_and_load(model, args.resume, device)
+    model.eval()
+
+    dataset = CocoStyleDatasetScenes100('001', 'val', val_trans)
+    batch_sampler = build_sampler(args, dataset, 'val')
+    data_loader = DataLoader(dataset=dataset, batch_sampler=batch_sampler, collate_fn=CocoStyleDatasetScenes100.collate_fn, num_workers=args.num_workers)
+    images_preload = []
+    for i, (images, masks, _) in tqdm.tqdm(enumerate(data_loader), ascii=True, total=len(data_loader)):
+        images_preload.append([images.to(device), masks.to(device)])
+    images, masks = images_preload[0]
+    print(images.size(), masks.size())
+    args = {'images': images, 'masks': masks}
+    flops, macs, params = calculate_flops(model=model, kwargs=args, print_results=False)
+    print(flops, macs, params)
+
+
 if __name__ == '__main__':
     # Parse arguments
     parser_main = argparse.ArgumentParser('Deformable DETR Detector', add_help=False)
@@ -341,11 +362,14 @@ if __name__ == '__main__':
         apg_scenes100(args)
     elif args.opt == 'tp':
         inference_throughput(args)
+    elif args.opt == 'flops':
+        inference_flops(args)
 
 '''
 python eval.py --opt eval --num_classes 3 --resume r50_model_best.pth --dataset 001
 python eval.py --opt base --num_classes 3 --resume r50_model_best.pth
 python eval.py --opt tp --num_classes 3 --resume r50_model_best.pth --batch_size 1
+python eval.py --opt flops --num_classes 3 --resume r50_model_best.pth --batch_size 1
 
 python eval.py --opt compare --num_classes 3 --resume /mnt/f/intersections_results/cvpr24/mrt/cross
 '''
